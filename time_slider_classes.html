@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Class Bars with Time Slider</title>
+  <style>
+    :root {
+      --bg0: #09111a;
+      --bg1: #163047;
+      --ink: #e7f1f7;
+      --muted: #9eb3c4;
+      --panel: rgba(10, 22, 34, 0.82);
+      --border: rgba(168, 194, 214, 0.26);
+      --accent: #4edcff;
+      --warn: #ff6a6a;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      overflow: hidden;
+      color: var(--ink);
+      font-family: "Segoe UI", "Trebuchet MS", sans-serif;
+      background:
+        radial-gradient(1000px 450px at 82% -8%, #1f405f 0%, transparent 60%),
+        radial-gradient(760px 420px at -12% 108%, #1a3a52 0%, transparent 58%),
+        linear-gradient(152deg, var(--bg0), var(--bg1));
+    }
+
+    #hud {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      width: min(420px, calc(100vw - 28px));
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--panel);
+      backdrop-filter: blur(8px);
+      padding: 14px;
+      z-index: 10;
+    }
+
+    #hud h1 {
+      font-size: 15px;
+      margin-bottom: 8px;
+      letter-spacing: 0.3px;
+    }
+
+    #hud p {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+      margin-bottom: 10px;
+    }
+
+    .row {
+      margin: 8px 0;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      font-size: 13px;
+      color: #d7e7f3;
+    }
+
+    .row input[type="range"] {
+      grid-column: 1 / -1;
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    .toggle-row {
+      margin: 8px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: #d7e7f3;
+    }
+
+    .toggle-row input[type="checkbox"] {
+      accent-color: var(--accent);
+    }
+
+    #date {
+      font-weight: 600;
+      color: #ffffff;
+      font-size: 13px;
+    }
+
+    #pandemic {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .covid-card {
+      margin-top: 8px;
+      padding: 8px;
+      border: 1px solid rgba(255, 120, 120, 0.25);
+      border-radius: 8px;
+      background: rgba(80, 20, 20, 0.2);
+    }
+
+    .covid-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: #ffd0d0;
+      margin-bottom: 6px;
+    }
+
+    .covid-track {
+      width: 100%;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      overflow: hidden;
+    }
+
+    .covid-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #ffd166, #ff6a6a);
+      transition: width 120ms linear;
+    }
+
+    #covid-stats {
+      margin-top: 6px;
+      font-size: 11px;
+      color: #f7d6d6;
+    }
+
+    #season {
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    #pandemic strong { color: var(--warn); }
+
+    #legend {
+      margin-top: 10px;
+      display: grid;
+      gap: 6px;
+      max-height: 24vh;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #dce9f4;
+    }
+
+    .swatch {
+      width: 24px;
+      height: 6px;
+      border-radius: 3px;
+      flex: 0 0 auto;
+    }
+
+    #hint {
+      position: absolute;
+      left: 50%;
+      bottom: 12px;
+      transform: translateX(-50%);
+      color: #a9bfd0;
+      font-size: 12px;
+      border: 1px solid rgba(168, 194, 214, 0.2);
+      border-radius: 999px;
+      padding: 6px 12px;
+      background: rgba(7, 14, 22, 0.45);
+      white-space: nowrap;
+      z-index: 10;
+    }
+
+    #error {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      z-index: 20;
+      background: rgba(12, 10, 10, 0.86);
+    }
+
+    #error pre {
+      max-width: 900px;
+      white-space: pre-wrap;
+      line-height: 1.5;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 155, 155, 0.45);
+      background: rgba(45, 10, 10, 0.62);
+      color: #ffdede;
+      padding: 16px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <aside id="hud">
+    <h1>Time-Slider Class Comparison</h1>
+    <p>Move through time and compare all classes side-by-side at each date.</p>
+
+    <!-- Dataset selector -->
+    <div class="row" style="grid-template-columns: auto 1fr;">
+      <span>Dataset</span>
+      <select id="dataset-select" style="background: rgba(10,22,34,0.9); color: var(--ink); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; font-size: 12px; accent-color: var(--accent);">
+        <option value="seasonal">Seasonal Search Rhythms</option>
+        <option value="mental">Mental Health Trends</option>
+        <option value="work">Remote Work vs Office</option>
+        <option value="resolutions">New Year's Resolutions</option>
+        <option value="shopping">E-commerce & Home Trends</option>
+        <option value="home">Home & Lifestyle Trends</option>
+        <option value="travel">Travel Trends</option>
+        <option value="work_economy">Work & Economy Trends</option>
+        <option value="entertainment">Entertainment Trends</option>
+      </select>
+    </div>
+
+    <!-- Playback controls -->
+    <div class="toggle-row">
+      <button id="play-btn" style="background: rgba(78,220,255,0.12); color: var(--accent); border: 1px solid rgba(78,220,255,0.35); border-radius: 6px; padding: 4px 14px; font-size: 13px; cursor: pointer; letter-spacing: 0.3px;">▶ Play</button>
+      <select id="speed-select" style="background: rgba(10,22,34,0.9); color: var(--ink); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; font-size: 12px;">
+        <option value="0.5">0.25×</option>
+        <option value="0.2">0.5×</option>
+        <option value="0.08" selected>1×</option>
+        <option value="0.04">2×</option>
+        <option value="0.02">4×</option>
+      </select>
+    </div>
+
+    <label class="row">
+      <span>Time</span>
+      <span id="date">-</span>
+      <input id="time" type="range" min="0" max="0" step="1" value="0" />
+    </label>
+
+    <label class="toggle-row">
+      <span>Seasonal effects</span>
+      <input id="toggle-season" type="checkbox" checked />
+    </label>
+
+    <div id="pandemic">Pandemic effect: <strong>inactive</strong></div>
+    <div class="covid-card">
+      <div class="covid-head">
+        <span>COVID pressure</span>
+        <strong id="covid-pressure">0%</strong>
+      </div>
+      <div class="covid-track">
+        <div id="covid-fill" class="covid-fill"></div>
+      </div>
+      <div id="covid-stats">Weekly cases: 0 · Weekly deaths: 0</div>
+    </div>
+    <div id="season">Season: <strong>neutral</strong></div>
+    <div id="legend"></div>
+  </aside>
+
+  <div id="hint">Left-drag rotate · Scroll zoom · Right-drag pan</div>
+  <div id="error"><pre id="error-text"></pre></div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module" src="time_slider_classes.js"></script>
+</body>
+</html>
