@@ -72,3 +72,5 @@ python -m http.server 8000
 ```
 
 Danach im Browser unter http://localhost:8000/ öffnen.
+
+Pages link: https://dominikdenner.github.io/infovis/
