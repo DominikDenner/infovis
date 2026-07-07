@@ -1,3 +1,9 @@
 pytrends
 plotly
 pandas
+numpy
+matplotlib
+scipy
+reportlab
+ipython
+jupyterlab
